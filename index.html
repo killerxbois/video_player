@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Video Player</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="video-player">
+            <video id="video" controls>
+                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+            </video>
+        </div>
+
+        <div class="video-info">
+            <h2>Awesome Video Title</h2>
+            <p id="views">Views: 0</p>
+            <button class="like-btn" onclick="likeVideo()">👍 <span id="likes">0</span></button>
+        </div>
+
+        <div class="comments-section">
+            <h3>Comments</h3>
+            <input type="text" id="commentBox" placeholder="Add a comment...">
+            <button onclick="addComment()">💬 Comment</button>
+            <ul id="commentList"></ul>
+        </div>
+    </div>
+
+    <script>
+        const videoId = "video1"; 
+        const apiURL = "https://sheetdb.io/api/v1/zq3lb2qxwe4on"; // Replace with your SheetDB API
+
+        // Increase view count
+        fetch(apiURL + `/search?video_id=${videoId}`)
+            .then(response => response.json())
+            .then(data => {
+                let views = (data[0]?.views || 0) + 1;
+                
+                fetch(apiURL + `/id/${data[0].id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ views })
+                });
+
+                document.getElementById("views").innerText = `Views: ${views}`;
+            });
+
+        // Like Button
+        function likeVideo() {
+            fetch(apiURL + `/search?video_id=${videoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    let likes = (data[0]?.likes || 0) + 1;
+
+                    fetch(apiURL + `/id/${data[0].id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ likes })
+                    });
+
+                    document.getElementById("likes").innerText = likes;
+                });
+        }
+
+        // Comment System
+        function addComment() {
+            let commentText = document.getElementById("commentBox").value;
+            
+            fetch(apiURL + `/search?video_id=${videoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    let comments = data[0]?.comments ? JSON.parse(data[0].comments) : [];
+                    comments.push(commentText);
+
+                    fetch(apiURL + `/id/${data[0].id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ comments: JSON.stringify(comments) })
+                    });
+
+                    document.getElementById("commentList").innerHTML += `<li>${commentText}</li>`;
+                    document.getElementById("commentBox").value = "";
+                });
+        }
+    </script>
+</body>
+</html>
