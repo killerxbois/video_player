@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Video Player</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json"> <!-- PWA Support -->
+</head>
+<body>
+
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+    <input type="text" id="search-bar" placeholder="Search videos..." onkeyup="searchVideos()">
+
+    <video id="video-player" controls>
+        <source id="video-source" src="" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <h2 id="video-title"></h2>
+    <p>Views: <span id="views">0</span> | Likes: <span id="likes">0</span> <button onclick="likeVideo()">👍</button></p>
+
+    <h3>Comments</h3>
+    <div id="comments-section"></div>
+    <input type="text" id="comment-input" placeholder="Add a comment..." onkeypress="addComment(event)">
+
+    <h2>Categories</h2>
+    <div id="categories"></div>
+
+    <h2>Recommended Videos</h2>
+    <div class="video-list" id="video-list"></div>
+
+    <script>
+        const SHEETDB_API = "https://sheetdb.io/api/v1/zq3lb2qxwe4on"; // Replace with your SheetDB API URL
+        let allVideos = [];
+
+        function fetchVideos() {
+            fetch(SHEETDB_API)
+                .then(response => response.json())
+                .then(data => {
+                    allVideos = data;
+                    displayVideos(data);
+                    displayCategories(data);
+                    playVideo(data[0]); // Auto-play first video
+                })
+                .catch(error => console.error("Error fetching videos:", error));
+        }
+
+        function displayVideos(videos) {
+            const videoList = document.getElementById("video-list");
+            videoList.innerHTML = "";
+            videos.forEach(video => {
+                const videoItem = document.createElement("div");
+                videoItem.classList.add("video-item");
+                videoItem.innerHTML = `<img src="${video.thumbnail}" alt="Video Thumbnail">
+                                       <p class="title">${video.title}</p>`;
+                videoItem.onclick = () => playVideo(video);
+                videoList.appendChild(videoItem);
+            });
+        }
+
+        function displayCategories(videos) {
+            const categories = [...new Set(videos.map(video => video.category))];
+            const categoryContainer = document.getElementById("categories");
+            categoryContainer.innerHTML = "";
+            categories.forEach(category => {
+                const btn = document.createElement("button");
+                btn.textContent = category;
+                btn.onclick = () => filterByCategory(category);
+                categoryContainer.appendChild(btn);
+            });
+        }
+
+        function filterByCategory(category) {
+            const filtered = allVideos.filter(video => video.category === category);
+            displayVideos(filtered);
+        }
+
+        function playVideo(video) {
+            document.getElementById("video-source").src = video.video_url.includes("youtube") ? 
+                video.video_url.replace("watch?v=", "embed/") : video.video_url;
+            document.getElementById("video-player").load();
+            document.getElementById("video-title").textContent = video.title;
+            document.getElementById("views").textContent = video.views;
+            document.getElementById("likes").textContent = video.likes;
+            loadComments(video.id);
+        }
+
+        function likeVideo() {
+            let likes = parseInt(document.getElementById("likes").textContent) + 1;
+            document.getElementById("likes").textContent = likes;
+            updateSheetDB("likes", likes);
+        }
+
+        function loadComments(videoId) {
+            const video = allVideos.find(v => v.id === videoId);
+            const comments = video.comments ? video.comments.split("|") : [];
+            const commentSection = document.getElementById("comments-section");
+            commentSection.innerHTML = "";
+            comments.forEach(comment => {
+                const p = document.createElement("p");
+                p.textContent = comment;
+                commentSection.appendChild(p);
+            });
+        }
+
+        function addComment(event) {
+            if (event.key === "Enter") {
+                let comment = document.getElementById("comment-input").value;
+                if (comment) {
+                    document.getElementById("comments-section").innerHTML += `<p>${comment}</p>`;
+                    updateSheetDB("comments", comment, true);
+                    document.getElementById("comment-input").value = "";
+                }
+            }
+        }
+
+        function updateSheetDB(field, value, append = false) {
+            fetch(SHEETDB_API, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ [field]: append ? `${value}|` : value })
+            });
+        }
+
+        function searchVideos() {
+            const query = document.getElementById("search-bar").value.toLowerCase();
+            const filtered = allVideos.filter(video => video.title.toLowerCase().includes(query));
+            displayVideos(filtered);
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark-mode");
+        }
+
+        fetchVideos();
+    </script>
+</body>
+  </html>
