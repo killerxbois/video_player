@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Video Player</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="video-player">
+            <video id="video" controls>
+                <source src="" type="video/mp4">
+            </video>
+        </div>
+
+        <div class="video-info">
+            <h2 id="videoTitle">Loading...</h2>
+            <p id="views">Views: 0</p>
+            <button class="like-btn" onclick="likeVideo()">👍 <span id="likes">0</span></button>
+        </div>
+
+        <div class="comments-section">
+            <h3>Comments</h3>
+            <input type="text" id="commentBox" placeholder="Add a comment...">
+            <button onclick="addComment()">💬 Comment</button>
+            <ul id="commentList"></ul>
+        </div>
+    </div>
+
+    <script>
+        const videoId = "video1"; 
+        const apiURL = "https://sheetdb.io/api/v1/zq3lb2qxwe4on"; 
+
+        // Fetch video details from SheetDB
+        fetch(`${apiURL}/search?video_id=${videoId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const videoData = data[0];
+
+                    // Update video source
+                    document.getElementById("video").src = videoData.video_url;
+
+                    // Update title
+                    document.getElementById("videoTitle").innerText = videoData.title;
+
+                    // Update views count
+                    let views = parseInt(videoData.views) + 1;
+                    document.getElementById("views").innerText = `Views: ${views}`;
+
+                    // Update likes count
+                    document.getElementById("likes").innerText = videoData.likes;
+
+                    // Update comments
+                    const comments = videoData.comments ? JSON.parse(videoData.comments) : [];
+                    const commentList = document.getElementById("commentList");
+                    comments.forEach(comment => {
+                        commentList.innerHTML += `<li>${comment}</li>`;
+                    });
+
+                    // Increment view count in SheetDB
+                    fetch(`${apiURL}/id/${videoData.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ views: views })
+                    });
+                }
+            });
+
+        // Like Button
+        function likeVideo() {
+            fetch(`${apiURL}/search?video_id=${videoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        let likes = parseInt(data[0].likes) + 1;
+
+                        fetch(`${apiURL}/id/${data[0].id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ likes: likes })
+                        });
+
+                        document.getElementById("likes").innerText = likes;
+                    }
+                });
+        }
+
+        // Comment System
+        function addComment() {
+            let commentText = document.getElementById("commentBox").value.trim();
+            if (commentText === "") return;
+
+            fetch(`${apiURL}/search?video_id=${videoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        let comments = data[0].comments ? JSON.parse(data[0].comments) : [];
+                        comments.push(commentText);
+
+                        fetch(`${apiURL}/id/${data[0].id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ comments: JSON.stringify(comments) })
+                        });
+
+                        document.getElementById("commentList").innerHTML += `<li>${commentText}</li>`;
+                        document.getElementById("commentBox").value = "";
+                    }
+                });
+        }
+    </script>
+</body>
+</html>
