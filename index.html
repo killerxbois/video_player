@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,11 +19,13 @@
         .copyBtn:hover { background-color: #047857; }
         .copyBtn:active { background-color: #065f46; }
         .icon { width: 50px; height: 50px; margin-bottom: 20px; }
+        .text { font-size: 1.2rem; color: #333; margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
         <img src="https://static.vecteezy.com/system/resources/previews/023/838/190/non_2x/live-streaming-media-video-tv-online-red-news-play-logo-design-symbol-vector.jpg" class="icon" alt="icon">
+        <p class="text">Grok Ai Account Generator</p>
         <h2>Generate an Account</h2>
         <button onclick="generateAccount()">Generate Account</button>
         <div id="accountBox">
@@ -30,34 +33,35 @@
             <p><strong>Password:</strong> <span id="userPass"></span></p>
             <button class="copyBtn" onclick="copyToClipboard()">Copy to Clipboard</button>
         </div>
-    </div><script>
-    async function generateAccount() {
-        let response = await fetch('https://sheetdb.io/api/v1/zq3lb2qxwe4on/search?Status=unused');
-        let accounts = await response.json();
-        
-        if (accounts.length === 0) {
-            alert('No unused accounts available!');
-            return;
+    </div>
+
+    <script>
+        async function generateAccount() {
+            let response = await fetch('https://sheetdb.io/api/v1/zq3lb2qxwe4on/search?Status=unused');
+            let accounts = await response.json();
+            
+            if (accounts.length === 0) {
+                alert('No unused accounts available!');
+                return;
+            }
+            
+            let account = accounts[0]; // First available account
+            document.getElementById('userId').innerText = account.ID;
+            document.getElementById('userPass').innerText = account.Password;
+            document.getElementById('accountBox').style.display = 'block';
+            
+            // Mark as used
+            await fetch(`https://sheetdb.io/api/v1/zq3lb2qxwe4on/ID/${account.ID}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Status: "used" })
+            });
         }
-        
-        let account = accounts[0]; // First available account
-        document.getElementById('userId').innerText = account.ID;
-        document.getElementById('userPass').innerText = account.Password;
-        document.getElementById('accountBox').style.display = 'block';
-        
-        // Mark as used
-        await fetch(`https://sheetdb.io/api/v1/zq3lb2qxwe4on/ID/${account.ID}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ Status: "used" })
-        });
-    }
 
-    function copyToClipboard() {
-        let text = `ID: ${document.getElementById('userId').innerText}\nPassword: ${document.getElementById('userPass').innerText}`;
-        navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
-    }
-</script>
-
+        function copyToClipboard() {
+            let text = `ID: ${document.getElementById('userId').innerText}\nPassword: ${document.getElementById('userPass').innerText}`;
+            navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
+        }
+    </script>
 </body>
-</html>
+                </html>
